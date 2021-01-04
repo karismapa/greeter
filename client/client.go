@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"time"
 
 	"github.com/karismapa/greeter/greetpb"
 
@@ -16,7 +17,7 @@ func main() {
 
 	conn, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
 	if err != nil {
-		log.Fatalf("Could not connect: %v", err)
+		log.Fatalf("Could not connect: %v\n", err)
 	}
 	defer conn.Close()
 
@@ -24,10 +25,11 @@ func main() {
 
 	unary(c)
 	serverStream(c)
+	clientStream(c)
 }
 
 func unary(c greetpb.GreetServiceClient) {
-	fmt.Println("Invoke Greet function...")
+	fmt.Println("Invoke unary function...")
 
 	ctx := context.Background()
 	req := &greetpb.GreetRequest{
@@ -39,13 +41,13 @@ func unary(c greetpb.GreetServiceClient) {
 
 	res, err := c.Greet(ctx, req)
 	if err != nil {
-		log.Fatalf("Error while calling Greet: %v", err)
+		log.Fatalf("Error while calling Greet: %v\n", err)
 	}
-	log.Printf("Response from Greet: %v", res.Result)
+	log.Printf("Response from Greet: %v\n", res.Result)
 }
 
 func serverStream(c greetpb.GreetServiceClient) {
-	fmt.Println("Invoke GetManyTimes function...")
+	fmt.Println("Invoke server stream function...")
 
 	ctx := context.Background()
 	req := &greetpb.GreetManyTimesRequest{
@@ -56,7 +58,7 @@ func serverStream(c greetpb.GreetServiceClient) {
 	}
 	stream, err := c.GreetManyTimes(ctx, req)
 	if err != nil {
-		log.Fatalf("Error while calling GreetManyTimes: %v", err)
+		log.Fatalf("Error while calling GreetManyTimes: %v\n", err)
 	}
 	for {
 		msg, err := stream.Recv()
@@ -65,8 +67,66 @@ func serverStream(c greetpb.GreetServiceClient) {
 			break
 		}
 		if err != nil {
-			log.Fatalf("Error while reading stream: %v", err)
+			log.Fatalf("Error while reading stream: %v\n", err)
 		}
-		log.Printf("Response from GreetManyTimes: %v", msg.GetResult())
+		log.Printf("Response from GreetManyTimes: %v\n", msg.GetResult())
 	}
+}
+
+func clientStream(c greetpb.GreetServiceClient) {
+	fmt.Println("Invoke client stream function...")
+
+	ctx := context.Background()
+	stream, err := c.LongGreet(ctx)
+	if err != nil {
+		log.Fatalf("Error while calling LongGreet: %v\n", err)
+	}
+
+	reqs := []*greetpb.LongGreetRequest{
+		&greetpb.LongGreetRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Karis",
+				LastName:  "Pratama",
+			},
+		},
+		&greetpb.LongGreetRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Karisma",
+				LastName:  "Pratama",
+			},
+		},
+		&greetpb.LongGreetRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Karismapa",
+				LastName:  "Pratama",
+			},
+		},
+		&greetpb.LongGreetRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Mapa",
+				LastName:  "Pratama",
+			},
+		},
+		&greetpb.LongGreetRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Kupe",
+				LastName:  "Pratama",
+			},
+		},
+	}
+	for _, req := range reqs {
+		fmt.Printf("Sending request: %v\n", req)
+		err := stream.Send(req)
+		if err != nil {
+			log.Fatalf("Error while sending stream: %v\n", err)
+		}
+
+		time.Sleep(400 * time.Millisecond)
+	}
+
+	res, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("Error while receiving response: %v\n", err)
+	}
+	fmt.Printf("Response from LongGreet: %v\n", res)
 }
