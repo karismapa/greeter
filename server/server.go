@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -11,8 +12,20 @@ import (
 
 type server struct{}
 
+func (*server) Greet(ctx context.Context, req *greetpb.GreetRequest) (*greetpb.GreetResponse, error) {
+	fmt.Printf("Greet function invoked with %v\n", req)
+
+	firstName := req.GetGreeting().GetFirstName()
+	result := "Hello " + firstName + "!"
+	res := &greetpb.GreetResponse{
+		Result: result,
+	}
+
+	return res, nil
+}
+
 func main() {
-	fmt.Println("Hello World!")
+	fmt.Println("Server main is running...")
 
 	lis, err := net.Listen("tcp", "0.0.0.0:50051")
 	if err != nil {
