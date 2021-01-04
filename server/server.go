@@ -39,7 +39,7 @@ func (*server) GreetManyTimes(req *greetpb.GreetManyTimesRequest, stream greetpb
 		}
 		fmt.Printf("Send response: %v\n", res)
 		stream.Send(res)
-		time.Sleep(400 * time.Millisecond)
+		time.Sleep(700 * time.Millisecond)
 	}
 
 	return nil
@@ -58,12 +58,38 @@ func (*server) LongGreet(stream greetpb.GreetService_LongGreetServer) error {
 			})
 		}
 		if err != nil {
-			log.Fatalf("Error while reading client strea,: %v\n", err)
+			log.Fatalf("Error while reading client stream: %v\n", err)
+			return err
 		}
 
 		fmt.Printf("Receive request: %v\n", req)
 		firstName := req.GetGreeting().GetFirstName()
 		result += "Hello " + firstName + "! "
+	}
+}
+
+func (*server) GreetAll(stream greetpb.GreetService_GreetAllServer) error {
+	fmt.Printf("GreetAll function invoked with a streaming request\n")
+
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			log.Fatalf("Error while reading client strea,: %v\n", err)
+			return err
+		}
+
+		firstName := req.GetGreeting().GetFirstName()
+		result := "Hello " + firstName + "! "
+		sendErr := stream.Send(&greetpb.GreetAllResponse{
+			Result: result,
+		})
+		if sendErr != nil {
+			log.Fatalf("Error while sending data to client: %v", sendErr)
+			return sendErr
+		}
 	}
 }
 

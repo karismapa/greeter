@@ -23,9 +23,10 @@ func main() {
 
 	c := greetpb.NewGreetServiceClient(conn)
 
-	unary(c)
-	serverStream(c)
-	clientStream(c)
+	// unary(c)
+	// serverStream(c)
+	// clientStream(c)
+	bidirectionalStream(c)
 }
 
 func unary(c greetpb.GreetServiceClient) {
@@ -121,7 +122,7 @@ func clientStream(c greetpb.GreetServiceClient) {
 			log.Fatalf("Error while sending stream: %v\n", err)
 		}
 
-		time.Sleep(400 * time.Millisecond)
+		time.Sleep(700 * time.Millisecond)
 	}
 
 	res, err := stream.CloseAndRecv()
@@ -129,4 +130,83 @@ func clientStream(c greetpb.GreetServiceClient) {
 		log.Fatalf("Error while receiving response: %v\n", err)
 	}
 	fmt.Printf("Response from LongGreet: %v\n", res)
+}
+
+func bidirectionalStream(c greetpb.GreetServiceClient) {
+	fmt.Println("Invoke bidirectional stream function...")
+
+	// create stream
+	ctx := context.Background()
+	stream, err := c.GreetAll(ctx)
+	if err != nil {
+		log.Fatalf("Error while calling GreetAll: %v\n", err)
+		return
+	}
+
+	reqs := []*greetpb.GreetAllRequest{
+		&greetpb.GreetAllRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Karis",
+				LastName:  "Pratama",
+			},
+		},
+		&greetpb.GreetAllRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Karisma",
+				LastName:  "Pratama",
+			},
+		},
+		&greetpb.GreetAllRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Karismapa",
+				LastName:  "Pratama",
+			},
+		},
+		&greetpb.GreetAllRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Mapa",
+				LastName:  "Pratama",
+			},
+		},
+		&greetpb.GreetAllRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "Kupe",
+				LastName:  "Pratama",
+			},
+		},
+	}
+
+	waitc := make(chan struct{})
+
+	// send message to stream
+	go func() {
+		for _, req := range reqs {
+			fmt.Printf("Sending request: %v\n", req)
+			err := stream.Send(req)
+			if err != nil {
+				log.Fatalf("Error while sending stream: %v\n", err)
+			}
+			time.Sleep(700 * time.Millisecond)
+		}
+		stream.CloseSend()
+	}()
+
+	// receive messages from client
+	go func() {
+		for {
+			res, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Fatalf("Error while reading stream: %v\n", err)
+				break
+			}
+			fmt.Printf("Received: %v\n", res.GetResult())
+		}
+		close(waitc)
+	}()
+
+	// block until everything is done
+	<-waitc
 }
