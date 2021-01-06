@@ -7,9 +7,12 @@ import (
 	"log"
 	"time"
 
+	"google.golang.org/grpc/codes"
+
 	"github.com/karismapa/greeter/greetpb"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
@@ -24,9 +27,11 @@ func main() {
 	c := greetpb.NewGreetServiceClient(conn)
 
 	// unary(c)
+	unaryWithDeadline(c, 5*time.Second)
+	unaryWithDeadline(c, 1*time.Second)
 	// serverStream(c)
 	// clientStream(c)
-	bidirectionalStream(c)
+	// bidirectionalStream(c)
 }
 
 func unary(c greetpb.GreetServiceClient) {
@@ -43,8 +48,40 @@ func unary(c greetpb.GreetServiceClient) {
 	res, err := c.Greet(ctx, req)
 	if err != nil {
 		log.Fatalf("Error while calling Greet: %v\n", err)
+		return
 	}
 	log.Printf("Response from Greet: %v\n", res.Result)
+}
+
+func unaryWithDeadline(c greetpb.GreetServiceClient, timeout time.Duration) {
+	fmt.Println("Invoke unaryWithDeadline function...")
+
+	ctx := context.Background()
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	req := &greetpb.GreetWithDeadlineRequest{
+		Greeting: &greetpb.Greeting{
+			FirstName: "Karisma",
+			LastName:  "Pratama",
+		},
+	}
+
+	res, err := c.GreetWithDeadline(ctxWithTimeout, req)
+	if err != nil {
+		statusErr, ok := status.FromError(err)
+		if ok {
+			if statusErr.Code() == codes.DeadlineExceeded {
+				fmt.Println("Timeout hit! Deadline is exceeded")
+			} else {
+				fmt.Printf("Unexpected error: %v\n", statusErr)
+			}
+		} else {
+			log.Fatalf("Error while calling GreetWithDeadline: %v\n", err)
+		}
+		return
+	}
+	log.Printf("Response from GreetWithDeadline: %v\n", res.Result)
 }
 
 func serverStream(c greetpb.GreetServiceClient) {
@@ -60,6 +97,7 @@ func serverStream(c greetpb.GreetServiceClient) {
 	stream, err := c.GreetManyTimes(ctx, req)
 	if err != nil {
 		log.Fatalf("Error while calling GreetManyTimes: %v\n", err)
+		return
 	}
 	for {
 		msg, err := stream.Recv()
@@ -69,8 +107,9 @@ func serverStream(c greetpb.GreetServiceClient) {
 		}
 		if err != nil {
 			log.Fatalf("Error while reading stream: %v\n", err)
+		} else {
+			log.Printf("Response from GreetManyTimes: %v\n", msg.GetResult())
 		}
-		log.Printf("Response from GreetManyTimes: %v\n", msg.GetResult())
 	}
 }
 
@@ -81,6 +120,7 @@ func clientStream(c greetpb.GreetServiceClient) {
 	stream, err := c.LongGreet(ctx)
 	if err != nil {
 		log.Fatalf("Error while calling LongGreet: %v\n", err)
+		return
 	}
 
 	reqs := []*greetpb.LongGreetRequest{
@@ -120,6 +160,7 @@ func clientStream(c greetpb.GreetServiceClient) {
 		err := stream.Send(req)
 		if err != nil {
 			log.Fatalf("Error while sending stream: %v\n", err)
+			return
 		}
 
 		time.Sleep(700 * time.Millisecond)
@@ -128,6 +169,7 @@ func clientStream(c greetpb.GreetServiceClient) {
 	res, err := stream.CloseAndRecv()
 	if err != nil {
 		log.Fatalf("Error while receiving response: %v\n", err)
+		return
 	}
 	fmt.Printf("Response from LongGreet: %v\n", res)
 }
