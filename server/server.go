@@ -9,6 +9,9 @@ import (
 	"strconv"
 	"time"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/karismapa/greeter/greetpb"
 	"google.golang.org/grpc"
 )
@@ -21,6 +24,31 @@ func (*server) Greet(ctx context.Context, req *greetpb.GreetRequest) (*greetpb.G
 	firstName := req.GetGreeting().GetFirstName()
 	result := "Hello " + firstName + "!"
 	res := &greetpb.GreetResponse{
+		Result: result,
+	}
+
+	return res, nil
+}
+
+func (*server) GreetWithDeadline(ctx context.Context, req *greetpb.GreetWithDeadlineRequest) (*greetpb.GreetWithDeadlineResponse, error) {
+	fmt.Printf("GreetWithDeadline function invoked with %v\n", req)
+
+	for i := 0; i < 3; i++ {
+		if ctx.Err() == context.Canceled {
+			fmt.Println("Request has been canceled!")
+			return nil, status.Error(codes.Canceled, "The client has canceled the request")
+		}
+		if ctx.Err() == context.DeadlineExceeded {
+			fmt.Println("Request deadline exceeded!")
+			return nil, status.Error(codes.DeadlineExceeded, "Request deadline has been exceeded")
+		}
+
+		time.Sleep(1 * time.Second)
+	}
+
+	firstName := req.GetGreeting().GetFirstName()
+	result := "Hello " + firstName + "!"
+	res := &greetpb.GreetWithDeadlineResponse{
 		Result: result,
 	}
 
