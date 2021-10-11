@@ -27,9 +27,9 @@ func main() {
 	c := greetpb.NewGreetServiceClient(conn)
 
 	// unary(c)
-	unaryWithDeadline(c, 5*time.Second)
-	unaryWithDeadline(c, 1*time.Second)
-	// serverStream(c)
+	// unaryWithDeadline(c, 5*time.Second)
+	// unaryWithDeadline(c, 1*time.Second)
+	serverStream(c)
 	// clientStream(c)
 	// bidirectionalStream(c)
 }
@@ -105,6 +105,10 @@ func serverStream(c greetpb.GreetServiceClient) {
 			// reached end of stream
 			break
 		}
+
+		fmt.Println("Wait for 60000ms")
+		time.Sleep(60000 * time.Millisecond)
+
 		if err != nil {
 			log.Fatalf("Error while reading stream: %v\n", err)
 		} else {
@@ -124,31 +128,31 @@ func clientStream(c greetpb.GreetServiceClient) {
 	}
 
 	reqs := []*greetpb.LongGreetRequest{
-		&greetpb.LongGreetRequest{
+		{
 			Greeting: &greetpb.Greeting{
 				FirstName: "Karis",
 				LastName:  "Pratama",
 			},
 		},
-		&greetpb.LongGreetRequest{
+		{
 			Greeting: &greetpb.Greeting{
 				FirstName: "Karisma",
 				LastName:  "Pratama",
 			},
 		},
-		&greetpb.LongGreetRequest{
+		{
 			Greeting: &greetpb.Greeting{
 				FirstName: "Karismapa",
 				LastName:  "Pratama",
 			},
 		},
-		&greetpb.LongGreetRequest{
+		{
 			Greeting: &greetpb.Greeting{
 				FirstName: "Mapa",
 				LastName:  "Pratama",
 			},
 		},
-		&greetpb.LongGreetRequest{
+		{
 			Greeting: &greetpb.Greeting{
 				FirstName: "Kupe",
 				LastName:  "Pratama",
@@ -186,31 +190,31 @@ func bidirectionalStream(c greetpb.GreetServiceClient) {
 	}
 
 	reqs := []*greetpb.GreetAllRequest{
-		&greetpb.GreetAllRequest{
+		{
 			Greeting: &greetpb.Greeting{
 				FirstName: "Karis",
 				LastName:  "Pratama",
 			},
 		},
-		&greetpb.GreetAllRequest{
+		{
 			Greeting: &greetpb.Greeting{
 				FirstName: "Karisma",
 				LastName:  "Pratama",
 			},
 		},
-		&greetpb.GreetAllRequest{
+		{
 			Greeting: &greetpb.Greeting{
 				FirstName: "Karismapa",
 				LastName:  "Pratama",
 			},
 		},
-		&greetpb.GreetAllRequest{
+		{
 			Greeting: &greetpb.Greeting{
 				FirstName: "Mapa",
 				LastName:  "Pratama",
 			},
 		},
-		&greetpb.GreetAllRequest{
+		{
 			Greeting: &greetpb.Greeting{
 				FirstName: "Kupe",
 				LastName:  "Pratama",

@@ -67,7 +67,9 @@ func (*server) GreetManyTimes(req *greetpb.GreetManyTimesRequest, stream greetpb
 			Result: result,
 		}
 		fmt.Printf("Send response: %v\n", res)
-		stream.Send(res)
+		if err := stream.Send(res); err != nil {
+			fmt.Printf("Response %d got err %v\n", i, err)
+		}
 		time.Sleep(700 * time.Millisecond)
 	}
 
